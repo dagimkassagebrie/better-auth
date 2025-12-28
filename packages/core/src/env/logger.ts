@@ -1,4 +1,5 @@
 import { getColorDepth } from "./color-depth";
+import { getEnvVar } from "./env-impl";
 
 export const TTY_COLORS = {
 	reset: "\x1b[0m",
@@ -34,6 +35,32 @@ export const TTY_COLORS = {
 export type LogLevel = "debug" | "info" | "success" | "warn" | "error";
 
 export const levels = ["debug", "info", "success", "warn", "error"] as const;
+
+/**
+ * Valid log levels that can be set via the BETTER_AUTH_LOG_LEVEL environment variable.
+ * Note: "success" is excluded as it's only used internally and maps to "info".
+ */
+const validEnvLogLevels = ["debug", "info", "warn", "error"] as const;
+
+/**
+ * Gets the log level from the BETTER_AUTH_LOG_LEVEL environment variable.
+ * Returns undefined if the env var is not set or has an invalid value.
+ */
+export function getLogLevelFromEnv(): LogLevel | undefined {
+	const envLevel = getEnvVar("BETTER_AUTH_LOG_LEVEL");
+	if (!envLevel) {
+		return undefined;
+	}
+	const normalizedLevel = envLevel.toLowerCase();
+	if (
+		validEnvLogLevels.includes(
+			normalizedLevel as (typeof validEnvLogLevels)[number],
+		)
+	) {
+		return normalizedLevel as LogLevel;
+	}
+	return undefined;
+}
 
 export function shouldPublishLog(
 	currentLogLevel: LogLevel,
@@ -94,7 +121,7 @@ export type InternalLogger = {
 
 export const createLogger = (options?: Logger | undefined): InternalLogger => {
 	const enabled = options?.disabled !== true;
-	const logLevel = options?.level ?? "error";
+	const logLevel = options?.level ?? getLogLevelFromEnv() ?? "error";
 
 	const isDisableColorsSpecified = options?.disableColors !== undefined;
 	const colorsEnabled = isDisableColorsSpecified
