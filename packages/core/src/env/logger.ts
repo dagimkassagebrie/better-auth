@@ -36,16 +36,8 @@ export type LogLevel = "debug" | "info" | "success" | "warn" | "error";
 
 export const levels = ["debug", "info", "success", "warn", "error"] as const;
 
-/**
- * Valid log levels that can be set via the BETTER_AUTH_LOG_LEVEL environment variable.
- * Note: "success" is excluded as it's only used internally and maps to "info".
- */
 const validEnvLogLevels = ["debug", "info", "warn", "error"] as const;
 
-/**
- * Gets the log level from the BETTER_AUTH_LOG_LEVEL environment variable.
- * Returns undefined if the env var is not set or has an invalid value.
- */
 export function getLogLevelFromEnv(): LogLevel | undefined {
 	const envLevel = getEnvVar("BETTER_AUTH_LOG_LEVEL");
 	if (!envLevel) {
