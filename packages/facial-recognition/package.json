@@ -1,0 +1,81 @@
+{
+  "name": "@better-auth/facial-recognition",
+  "version": "1.4.17",
+  "type": "module",
+  "description": "Facial recognition plugin for Better Auth",
+  "main": "dist/index.mjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "vitest",
+    "coverage": "vitest run --coverage --coverage.provider=istanbul",
+    "lint:package": "publint run --strict",
+    "lint:types": "attw --profile esm-only --pack .",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc --project tsconfig.json"
+  },
+  "exports": {
+    ".": {
+      "dev-source": "./src/index.ts",
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./dist/index.d.mts"
+      ]
+    }
+  },
+  "devDependencies": {
+    "@better-auth/core": "workspace:*",
+    "better-auth": "workspace:*",
+    "tsdown": "catalog:"
+  },
+  "dependencies": {
+    "zod": "^4.3.5"
+  },
+  "peerDependencies": {
+    "@better-auth/core": "workspace:*",
+    "@better-auth/utils": "catalog:",
+    "@better-fetch/fetch": "catalog:",
+    "better-auth": "workspace:*",
+    "better-call": "catalog:",
+    "nanostores": "^1.0.1",
+    "@tensorflow/tfjs-node": "^4.15.0",
+    "@vladmandic/face-api": "^1.6.9",
+    "sharp": "^0.33.5"
+  },
+  "peerDependenciesMeta": {
+    "@tensorflow/tfjs-node": {
+      "optional": true
+    },
+    "@vladmandic/face-api": {
+      "optional": true
+    },
+    "sharp": {
+      "optional": true
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/better-auth/better-auth.git",
+    "directory": "packages/facial-recognition"
+  },
+  "keywords": [
+    "auth",
+    "facial-recognition",
+    "biometric",
+    "typescript",
+    "better-auth"
+  ],
+  "license": "MIT"
+}

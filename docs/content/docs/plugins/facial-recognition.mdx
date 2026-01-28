@@ -1,0 +1,299 @@
+---
+title: Facial Recognition
+description: Add biometric facial recognition authentication to your application.
+---
+
+`Biometric` `Face ID` `Passwordless`
+
+Facial Recognition adds biometric authentication to your application, allowing users to sign in using their face. This plugin uses face-api.js with TensorFlow.js for face detection and feature extraction, providing a secure and convenient passwordless authentication method.
+
+**Key features:**
+- Face enrollment for authenticated users
+- Passwordless sign-in with facial recognition
+- Configurable similarity threshold
+- Encrypted face template storage
+- Rate limiting for security
+- Custom face recognition implementation support
+
+## Installation
+
+<Steps>
+    <Step>
+        ### Install the plugin and dependencies
+
+        ```package-install
+        npm install @better-auth/facial-recognition
+        ```
+
+        The plugin requires optional peer dependencies for face recognition. Install them based on your needs:
+
+        ```package-install
+        npm install @tensorflow/tfjs-node @vladmandic/face-api sharp
+        ```
+
+        <Callout type="info">
+        These dependencies are optional if you provide a custom `faceRecognition` implementation.
+        </Callout>
+    </Step>
+    <Step>
+        ### Add the plugin to your auth config
+
+        ```ts title="auth.ts"
+        import { betterAuth } from "better-auth"
+        import { facialRecognition } from "@better-auth/facial-recognition" // [!code highlight]
+
+        export const auth = betterAuth({
+            plugins: [
+                facialRecognition({ // [!code highlight]
+                    threshold: 0.85, // Similarity threshold (0-1) // [!code highlight]
+                }) // [!code highlight]
+            ]
+        })
+        ```
+    </Step>
+    <Step>
+        ### Migrate the database
+
+        Run the migration or generate the schema to add the necessary fields and tables to the database.
+
+        <Tabs items={["migrate", "generate"]}>
+            <Tab value="migrate">
+            ```package-install
+            npx @better-auth/cli migrate
+            ```
+            </Tab>
+            <Tab value="generate">
+            ```package-install
+            npx @better-auth/cli generate
+            ```
+            </Tab>
+        </Tabs>
+        See the [Schema](#schema) section to add the fields manually.
+    </Step>
+</Steps>
+
+## Usage
+
+### Enroll Face
+
+Before users can sign in with facial recognition, they must enroll their face. This requires the user to be authenticated.
+
+<APIMethod path="/facial/enroll" method="POST" requireSession>
+```ts
+type enrollFace = {
+    /**
+     * Base64 encoded face image data
+     */
+    faceData: string = "data:image/jpeg;base64,..."
+}
+```
+</APIMethod>
+
+```ts title="enroll-face.ts"
+// User must be logged in to enroll their face
+const response = await fetch("/api/auth/facial/enroll", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+        faceData: base64EncodedImage, // Base64 encoded face image
+    }),
+});
+
+const result = await response.json();
+// { success: true }
+```
+
+### Sign In with Facial Recognition
+
+Once enrolled, users can sign in using their face.
+
+<APIMethod path="/sign-in/facial" method="POST">
+```ts
+type signInFacial = {
+    /**
+     * User email address
+     */
+    email: string = "user@example.com"
+    /**
+     * Base64 encoded face image data
+     */
+    faceData: string = "data:image/jpeg;base64,..."
+    /**
+     * Remember the user session
+     */
+    rememberMe?: boolean = true
+}
+```
+</APIMethod>
+
+```ts title="sign-in-facial.ts"
+const response = await fetch("/api/auth/sign-in/facial", {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+        email: "user@example.com",
+        faceData: base64EncodedImage,
+        rememberMe: true,
+    }),
+});
+
+const result = await response.json();
+// { user: {...}, token: "...", similarity: 0.92 }
+```
+
+### Check Enrollment Status
+
+Check if the current user has enrolled their face.
+
+<APIMethod path="/facial/check-enrollment" method="GET" requireSession>
+```ts
+type checkFaceEnrollment = {
+}
+```
+</APIMethod>
+
+```ts title="check-enrollment.ts"
+const response = await fetch("/api/auth/facial/check-enrollment");
+const result = await response.json();
+// { enrolled: true, enrolledAt: "2024-01-15T10:30:00.000Z" }
+```
+
+## Configuration Options
+
+```ts title="auth.ts"
+import { facialRecognition } from "@better-auth/facial-recognition"
+
+facialRecognition({
+    /**
+     * Similarity threshold for face matching (0-1).
+     * Higher values require more exact matches.
+     * @default 0.85
+     */
+    threshold: 0.85,
+
+    /**
+     * Rate limit configuration for enrollment and sign-in.
+     * @default { window: 60, max: 5 }
+     */
+    rateLimit: {
+        window: 60, // Time window in seconds
+        max: 5,     // Maximum attempts per window
+    },
+
+    /**
+     * Custom face recognition implementation.
+     * Use this to provide your own face detection/comparison logic.
+     */
+    faceRecognition: {
+        extractFeatures: async (imageData: string) => {
+            // Return 128-dimensional face embedding
+            return [0.1, 0.2, ...]; // number[]
+        },
+        compareFaces: async (features1: number[], features2: number[]) => {
+            // Return similarity score (0-1)
+            return 0.95;
+        },
+    },
+})
+```
+
+## Custom Face Recognition
+
+You can provide your own face recognition implementation if you want to use a different library or cloud service:
+
+```ts title="auth.ts"
+import { facialRecognition } from "@better-auth/facial-recognition"
+
+export const auth = betterAuth({
+    plugins: [
+        facialRecognition({
+            faceRecognition: {
+                async extractFeatures(imageData: string) {
+                    // Use your preferred face recognition service
+                    // e.g., AWS Rekognition, Azure Face API, etc.
+                    const response = await myFaceService.detectFace(imageData);
+                    return response.embedding; // number[]
+                },
+                async compareFaces(features1: number[], features2: number[]) {
+                    // Compare two face embeddings
+                    // Return similarity score between 0 and 1
+                    return myFaceService.compare(features1, features2);
+                },
+            },
+        }),
+    ],
+})
+```
+
+## Error Codes
+
+The plugin provides specific error codes for handling different failure scenarios:
+
+| Error Code | Description |
+|------------|-------------|
+| `FACE_NOT_ENROLLED` | User has not enrolled their face |
+| `FACE_MISMATCH` | Face does not match enrolled template |
+| `FACE_EXTRACTION_FAILED` | Failed to extract face features from image |
+| `NO_FACE_DETECTED` | No face detected in the provided image |
+| `MULTIPLE_FACES_DETECTED` | Multiple faces detected in the image |
+
+## Security Considerations
+
+- **Encrypted Storage**: Face embeddings are encrypted using symmetric encryption before storage
+- **Rate Limiting**: Built-in rate limiting prevents brute-force attacks
+- **Timing Attack Prevention**: The plugin performs face extraction even on failed lookups to prevent timing attacks
+- **Single Face Requirement**: Only images with exactly one face are accepted
+- **Threshold Configuration**: Adjust the similarity threshold based on your security requirements
+
+<Callout type="warn">
+Facial recognition should be used as part of a multi-factor authentication strategy for high-security applications. Consider combining it with other authentication methods.
+</Callout>
+
+## Schema
+
+The plugin adds a `faceTemplate` table to store enrolled face data:
+
+### Face Template
+
+<DatabaseTable
+    fields={[
+        {
+            name: "id",
+            type: "string",
+            description: "Unique identifier for the face template",
+            isPrimaryKey: true
+        },
+        {
+            name: "userId",
+            type: "string",
+            description: "The user ID this face template belongs to",
+            isUnique: true
+        },
+        {
+            name: "faceEmbedding",
+            type: "string",
+            description: "Encrypted face embedding data"
+        },
+        {
+            name: "enrolledAt",
+            type: "date",
+            description: "When the face was enrolled"
+        },
+        {
+            name: "lastVerified",
+            type: "date",
+            description: "Last successful verification time",
+            isOptional: true
+        },
+        {
+            name: "version",
+            type: "string",
+            description: "Face template version",
+            isOptional: true
+        }
+    ]}
+/>
