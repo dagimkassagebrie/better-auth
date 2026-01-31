@@ -22,6 +22,7 @@ export * from "./email-otp";
 export * from "./generic-oauth";
 export * from "./haveibeenpwned";
 export * from "./jwt";
+export * from "./keystroke-latency";
 export * from "./last-login-method";
 export * from "./magic-link";
 export * from "./mcp";
